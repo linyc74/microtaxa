@@ -2,6 +2,7 @@ import pandas as pd
 from os.path import basename
 from typing import Optional, List, Tuple
 from .template import Processor
+from .trimming import TrimGalorePairedEnd, TrimGaloreSingleEnd
 
 
 class MicroTaxa(Processor):
@@ -11,11 +12,13 @@ class MicroTaxa(Processor):
     fq1_suffix: str
     fq2_suffix: Optional[str]
     ref_fa: str
-    min_percent_id: float
+    min_percent_identity: float
     clip_r1_5_prime: int
     clip_r2_5_prime: int
 
+    sample_ids: List[str]
     fastq_pairs: List[Tuple[str, Optional[str]]]
+    trimmed_fastq_pairs: List[Tuple[str, Optional[str]]]
     merged_fastqs: List[str]
     fastas: List[str]
     glsearch_tsvs: List[str]
@@ -27,7 +30,7 @@ class MicroTaxa(Processor):
             fq1_suffix: str,
             fq2_suffix: Optional[str],
             ref_fa: str,
-            min_percent_id: float,
+            min_percent_identity: float,
             clip_r1_5_prime: int,
             clip_r2_5_prime: int):
 
@@ -36,19 +39,21 @@ class MicroTaxa(Processor):
         self.fq1_suffix = fq1_suffix
         self.fq2_suffix = fq2_suffix
         self.ref_fa = ref_fa
-        self.min_percent_id = min_percent_id
+        self.min_percent_identity = min_percent_identity
         self.clip_r1_5_prime = clip_r1_5_prime
         self.clip_r2_5_prime = clip_r2_5_prime
 
-        self.set_fastq_pairs()
+        self.read_sample_sheet()
+        self.trim_galore()
         self.merge_paired_end_reads()
         self.convert_fastqs_to_fastas()
         self.run_glsearches()
 
-    def set_fastq_pairs(self):
+    def read_sample_sheet(self):
+        self.sample_ids = []
         self.fastq_pairs = []
-        sample_ids = pd.read_csv(self.sample_sheet, index_col=0).index.tolist()
-        for s in sample_ids:
+        self.sample_ids = pd.read_csv(self.sample_sheet, index_col=0).index.tolist()
+        for s in self.sample_ids:
             fq1 = f'{self.fq_dir}/{s}{self.fq1_suffix}'
             if self.fq2_suffix is None:
                 fq2 = None
@@ -56,16 +61,35 @@ class MicroTaxa(Processor):
                 fq2 = f'{self.fq_dir}/{s}{self.fq2_suffix}'
             self.fastq_pairs.append((fq1, fq2))
 
+    def trim_galore(self):
+        self.trimmed_fastq_pairs = []
+        for fq1, fq2 in self.fastq_pairs:
+            if fq2 is None:
+                trimmed_fq = TrimGaloreSingleEnd(self.settings).main(
+                    fq=fq1,
+                    clip_5_prime=self.clip_r1_5_prime)
+                self.trimmed_fastq_pairs.append((trimmed_fq, None))
+            else:
+                trimmed_fq1, trimmed_fq2 = TrimGalorePairedEnd(self.settings).main(
+                    fq1=fq1,
+                    fq2=fq2,
+                    clip_r1_5_prime=self.clip_r1_5_prime,
+                    clip_r2_5_prime=self.clip_r2_5_prime)
+                self.trimmed_fastq_pairs.append((trimmed_fq1, trimmed_fq2))
+
     def merge_paired_end_reads(self):
-        if self.fq2_suffix is not None:
-            self.merged_fastqs = MergePairedEndReads(self.settings).main(self.fastq_pairs)
-        else:
-            self.merged_fastqs = [fq for fq, _ in self.fastq_pairs]
+        self.merged_fastqs = []
+        for sample_id, fastq_pair in zip(self.sample_ids, self.trimmed_fastq_pairs):
+            fq = MergePairedEndReads(self.settings).main(
+                sample_id=sample_id,
+                fastq_pair=fastq_pair
+            )
+            self.merged_fastqs.append(fq)
 
     def convert_fastqs_to_fastas(self):
         self.fastas = []
         for fq in self.merged_fastqs:
-            fa = FastqToFasta(self.settings).main(fq)
+            fa = FastqToFasta(self.settings).main(fastq=fq)
             self.fastas.append(fa)
 
     def run_glsearches(self):
@@ -74,23 +98,59 @@ class MicroTaxa(Processor):
             tsv = Glsearch(self.settings).main(
                 query_fa=fa,
                 library_fa=self.ref_fa,
-                min_percent_id=self.min_percent_id)
+                min_percent_identity=self.min_percent_identity)
             self.glsearch_tsvs.append(tsv)
 
 
 class MergePairedEndReads(Processor):
 
-    fastq_pairs: List[Tuple[str, str]]
+    DSTDIR_NAME = 'merged-fastq'
 
-    merged_fastqs: List[str]
+    sample_id: str
+    fastq_pair: Tuple[str, Optional[str]]
 
-    def main(self, fastq_pairs: List[Tuple[str, str]]) -> List[str]:
+    dstdir: str
+    output_fastq: str
 
-        self.fastq_pairs = fastq_pairs
+    def main(
+            self,
+            sample_id: str,
+            fastq_pair: Tuple[str, Optional[str]]) -> str:
 
-        self.merged_fastqs = []
+        self.sample_id = sample_id
+        self.fastq_pair = fastq_pair
 
-        return self.merged_fastqs
+        self.make_dstdir()
+        self.set_output_fastq()
+
+        fq2 = self.fastq_pair[1]
+        if fq2 is None:
+            self.copy_fq1()
+        else:
+            self.merge_fq1_fq2()
+
+        return self.output_fastq
+
+    def make_dstdir(self):
+        self.dstdir = f'{self.workdir}/{self.DSTDIR_NAME}'
+        self.call(f'mkdir -p {self.dstdir}')
+
+    def set_output_fastq(self):
+        fq = self.fastq_pair[0]
+        if fq.endswith('.gz'):
+            suffix = 'fastq.gz'
+        else:
+            suffix = 'fastq'
+        self.output_fastq = f'{self.dstdir}/{self.sample_id}.{suffix}'
+
+    def copy_fq1(self):
+        self.call(f'cp {self.fastq_pair[0]} {self.output_fastq}')
+
+    def merge_fq1_fq2(self):
+        args = [
+            'PEAR'
+        ]
+        self.call(self.CMD_LINEBREAK.join(args))
 
 
 class FastqToFasta(Processor):
@@ -136,11 +196,11 @@ class Glsearch(Processor):
 
     DSTDIR_NAME = 'glsearch'
 
-    E_VALUE = 10e-6
+    E_VALUE = 10e-30
 
     query_fa: str
     library_fa: str
-    min_percent_id: float
+    min_percent_identity: float
 
     output_tsv: str
 
@@ -148,11 +208,11 @@ class Glsearch(Processor):
             self,
             query_fa: str,
             library_fa: str,
-            min_percent_id: float) -> str:
+            min_percent_identity: float) -> str:
 
         self.query_fa = query_fa
         self.library_fa = library_fa
-        self.min_percent_id = min_percent_id
+        self.min_percent_identity = min_percent_identity
 
         self.make_dstdir()
 
@@ -161,14 +221,14 @@ class Glsearch(Processor):
         args = [
             'glsearch36',
             '-3',  # forward strand only
-            f'-E {self.E_VALUE}',
             '-m 8',  # BLAST tabular output format
             '-n',  # DNA/RNA query
-            f'-O {self.output_tsv}',
+            f'-E {self.E_VALUE}',
+            f'-T {self.threads}',
             self.query_fa,
             self.library_fa,
-            # f'1>> {self.outdir}/glsearch.log',
-            # f'2>> {self.outdir}/glsearch.log'
+            f'1> {self.output_tsv}',
+            f'2>> {self.outdir}/glsearch.log'
         ]
         self.call(self.CMD_LINEBREAK.join(args))
 
@@ -176,5 +236,3 @@ class Glsearch(Processor):
 
     def make_dstdir(self):
         self.call(f'mkdir -p {self.workdir}/{self.DSTDIR_NAME}')
-
-
