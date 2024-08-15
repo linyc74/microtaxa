@@ -2,6 +2,7 @@ import pandas as pd
 from os.path import basename
 from typing import Optional, List, Tuple
 from .template import Processor
+from .merge import MergePairedEndReads
 from .trimming import TrimGalorePairedEnd, TrimGaloreSingleEnd
 
 
@@ -100,57 +101,6 @@ class MicroTaxa(Processor):
                 library_fa=self.ref_fa,
                 min_percent_identity=self.min_percent_identity)
             self.glsearch_tsvs.append(tsv)
-
-
-class MergePairedEndReads(Processor):
-
-    DSTDIR_NAME = 'merged-fastq'
-
-    sample_id: str
-    fastq_pair: Tuple[str, Optional[str]]
-
-    dstdir: str
-    output_fastq: str
-
-    def main(
-            self,
-            sample_id: str,
-            fastq_pair: Tuple[str, Optional[str]]) -> str:
-
-        self.sample_id = sample_id
-        self.fastq_pair = fastq_pair
-
-        self.make_dstdir()
-        self.set_output_fastq()
-
-        fq2 = self.fastq_pair[1]
-        if fq2 is None:
-            self.copy_fq1()
-        else:
-            self.merge_fq1_fq2()
-
-        return self.output_fastq
-
-    def make_dstdir(self):
-        self.dstdir = f'{self.workdir}/{self.DSTDIR_NAME}'
-        self.call(f'mkdir -p {self.dstdir}')
-
-    def set_output_fastq(self):
-        fq = self.fastq_pair[0]
-        if fq.endswith('.gz'):
-            suffix = 'fastq.gz'
-        else:
-            suffix = 'fastq'
-        self.output_fastq = f'{self.dstdir}/{self.sample_id}.{suffix}'
-
-    def copy_fq1(self):
-        self.call(f'cp {self.fastq_pair[0]} {self.output_fastq}')
-
-    def merge_fq1_fq2(self):
-        args = [
-            'PEAR'
-        ]
-        self.call(self.CMD_LINEBREAK.join(args))
 
 
 class FastqToFasta(Processor):

@@ -12,10 +12,10 @@ class TestTrimGaloreSingleEnd(TestCase):
 
     def test_main(self):
         actual = TrimGaloreSingleEnd(self.settings).main(
-            fq=f'{self.indir}/H-1_S24_R1.fastq.gz',
+            fq=f'{self.indir}/EPI-001_R1.fastq.gz',
             clip_5_prime=1
         )
-        expected = f'{self.workdir}/trimmed-fastq/H-1_S24_R1_trimmed.fq.gz'
+        expected = f'{self.workdir}/trimmed-fastq/EPI-001_R1_trimmed.fq.gz'
         self.assertFileExists(expected, actual)
 
 
@@ -29,10 +29,10 @@ class TestTrimGalorePairedEnd(TestCase):
 
     def test_main(self):
         fq1, fq2 = TrimGalorePairedEnd(self.settings).main(
-            fq1=f'{self.indir}/H-1_S24_R1.fastq.gz',
-            fq2=f'{self.indir}/H-1_S24_R2.fastq.gz',
+            fq1=f'{self.indir}/EPI-001_R1.fastq.gz',
+            fq2=f'{self.indir}/EPI-001_R2.fastq.gz',
             clip_r1_5_prime=1,
             clip_r2_5_prime=1
         )
-        self.assertFileExists(f'{self.workdir}/trimmed-fastq/H-1_S24_R1_val_1.fq.gz', fq1)
-        self.assertFileExists(f'{self.workdir}/trimmed-fastq/H-1_S24_R2_val_2.fq.gz', fq2)
+        self.assertFileExists(f'{self.workdir}/trimmed-fastq/EPI-001_R1_val_1.fq.gz', fq1)
+        self.assertFileExists(f'{self.workdir}/trimmed-fastq/EPI-001_R2_val_2.fq.gz', fq2)
