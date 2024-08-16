@@ -33,5 +33,5 @@ class TestMicroTaxa(TestCase):
                 f'{self.indir}/fasta/TP-202.fasta',
             ]
         )
-        expected = pd.read_csv(f'{self.indir}/count_df.csv', index_col=0)
+        expected = pd.read_csv(f'{self.indir}/count-table.csv', index_col=0)
         self.assertDataFrameEqual(expected, actual)

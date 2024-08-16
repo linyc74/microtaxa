@@ -6,6 +6,6 @@ Install dependencies:
 ```bash
 conda create -n microtaxa python=3.11
 conda activate microtaxa
-pip install pandas
+pip install pandas seaborn scipy statsmodels
 conda install -c bioconda trim-galore pear seqtk fasta3
 ```
