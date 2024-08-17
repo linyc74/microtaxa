@@ -11,11 +11,11 @@ from .trimming import TrimGalorePairedEnd, TrimGaloreSingleEnd
 
 class MicroTaxa(Processor):
 
+    ref_fa: str
     sample_sheet: str
     fq_dir: str
     fq1_suffix: str
     fq2_suffix: Optional[str]
-    ref_fa: str
     min_percent_identity: float
     clip_r1_5_prime: int
     clip_r2_5_prime: int
@@ -32,22 +32,22 @@ class MicroTaxa(Processor):
 
     def main(
             self,
+            ref_fa: str,
             sample_sheet: str,
             fq_dir: str,
             fq1_suffix: str,
             fq2_suffix: Optional[str],
-            ref_fa: str,
             min_percent_identity: float,
             clip_r1_5_prime: int,
             clip_r2_5_prime: int,
             colormap: str,
             invert_colors: bool):
 
+        self.ref_fa = ref_fa
         self.sample_sheet = sample_sheet
         self.fq_dir = fq_dir
         self.fq1_suffix = fq1_suffix
         self.fq2_suffix = fq2_suffix
-        self.ref_fa = ref_fa
         self.min_percent_identity = min_percent_identity
         self.clip_r1_5_prime = clip_r1_5_prime
         self.clip_r2_5_prime = clip_r2_5_prime
