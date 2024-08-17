@@ -1,4 +1,5 @@
 import os
+from shutil import rmtree
 from .template import Settings
 from .microtaxa import MicroTaxa
 from .utils import get_temp_path
@@ -40,3 +41,6 @@ def entrypoint(
         clip_r2_5_prime=clip_r2_5_prime,
         colormap=colormap,
         invert_colors=invert_colors)
+
+    if not debug:
+        rmtree(settings.workdir)

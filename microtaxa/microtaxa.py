@@ -61,6 +61,7 @@ class MicroTaxa(Processor):
         self.run_glsearches()
         self.aggregate_search_results_to_count_df()
         self.differential_abundance()
+        self.collect_log_files()
 
     def read_sample_sheet(self):
         self.sample_ids = []
@@ -131,6 +132,10 @@ class MicroTaxa(Processor):
             count_df=self.count_df,
             sample_sheet=self.sample_sheet,
             colors=colors)
+
+    def collect_log_files(self):
+        self.call(f'mkdir -p {self.outdir}/log')
+        self.call(f'mv "{self.outdir}"/*.log "{self.outdir}"/log/')
 
 
 class FastqToFasta(Processor):
