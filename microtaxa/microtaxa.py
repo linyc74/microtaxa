@@ -2,7 +2,10 @@ import pandas as pd
 from os.path import basename
 from typing import Optional, List, Tuple
 from .template import Processor
+from .grouping import GetColors
+from .aggregate import Aggregate
 from .merge import MergePairedEndReads
+from .differential_abundance import DifferentialAbundance
 from .trimming import TrimGalorePairedEnd, TrimGaloreSingleEnd
 
 
@@ -16,6 +19,8 @@ class MicroTaxa(Processor):
     min_percent_identity: float
     clip_r1_5_prime: int
     clip_r2_5_prime: int
+    colormap: str
+    invert_colors: bool
 
     sample_ids: List[str]
     fastq_pairs: List[Tuple[str, Optional[str]]]
@@ -23,6 +28,7 @@ class MicroTaxa(Processor):
     merged_fastqs: List[str]
     fastas: List[str]
     glsearch_tsvs: List[str]
+    count_df: pd.DataFrame
 
     def main(
             self,
@@ -33,7 +39,9 @@ class MicroTaxa(Processor):
             ref_fa: str,
             min_percent_identity: float,
             clip_r1_5_prime: int,
-            clip_r2_5_prime: int):
+            clip_r2_5_prime: int,
+            colormap: str,
+            invert_colors: bool):
 
         self.sample_sheet = sample_sheet
         self.fq_dir = fq_dir
@@ -43,12 +51,16 @@ class MicroTaxa(Processor):
         self.min_percent_identity = min_percent_identity
         self.clip_r1_5_prime = clip_r1_5_prime
         self.clip_r2_5_prime = clip_r2_5_prime
+        self.colormap = colormap
+        self.invert_colors = invert_colors
 
         self.read_sample_sheet()
         self.trim_galore()
         self.merge_paired_end_reads()
         self.convert_fastqs_to_fastas()
         self.run_glsearches()
+        self.aggregate_search_results_to_count_df()
+        self.differential_abundance()
 
     def read_sample_sheet(self):
         self.sample_ids = []
@@ -101,6 +113,24 @@ class MicroTaxa(Processor):
                 library_fa=self.ref_fa,
                 min_percent_identity=self.min_percent_identity)
             self.glsearch_tsvs.append(tsv)
+
+    def aggregate_search_results_to_count_df(self):
+        self.count_df = Aggregate(self.settings).main(
+            blast_tabular_tsvs=self.glsearch_tsvs,
+            min_percent_identity=self.min_percent_identity,
+            ref_fa=self.ref_fa,
+            query_fastas=self.fastas)
+        self.count_df.to_csv(f'{self.outdir}/count-table.csv')
+
+    def differential_abundance(self):
+        colors = GetColors(self.settings).main(
+            sample_sheet=self.sample_sheet,
+            colormap=self.colormap,
+            invert_colors=self.invert_colors)
+        DifferentialAbundance(self.settings).main(
+            count_df=self.count_df,
+            sample_sheet=self.sample_sheet,
+            colors=colors)
 
 
 class FastqToFasta(Processor):

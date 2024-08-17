@@ -19,5 +19,7 @@ class TestMicroTaxa(TestCase):
             ref_fa=f'{self.indir}/reference.fasta',
             min_percent_identity=97.0,
             clip_r1_5_prime=0,
-            clip_r2_5_prime=0
+            clip_r2_5_prime=0,
+            colormap='viridis',
+            invert_colors=False
         )

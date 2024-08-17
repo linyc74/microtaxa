@@ -1,6 +1,6 @@
 import pandas as pd
-from typing import List, Dict
 from os.path import basename
+from typing import List, Dict
 from .utils import FastaParser
 from .template import Processor
 

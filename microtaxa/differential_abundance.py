@@ -17,45 +17,41 @@ DSTDIR_NAME = 'differential-abundance'
 
 class DifferentialAbundance(Processor):
 
-    taxon_csv: str
+    count_df: pd.DataFrame
     sample_sheet: str
     colors: list
 
-    taxon_df: pd.DataFrame
-
     def main(
             self,
-            taxon_csv: str,
+            count_df: pd.DataFrame,
             sample_sheet: str,
             colors: list):
 
-        self.taxon_csv = taxon_csv
+        self.count_df = count_df
         self.sample_sheet = sample_sheet
         self.colors = colors
 
-        self.taxon_df = pd.read_csv(self.taxon_csv, index_col=0)
-
-        self.taxon_df = PrepareTaxonDf(self.settings).main(
-            df=self.taxon_df,
+        self.count_df = PrepareCountDf(self.settings).main(
+            count_df=self.count_df,
             sample_sheet=self.sample_sheet)
 
         MannwhitneyuTestsAndBoxplots(self.settings).main(
-            taxon_df=self.taxon_df,
+            count_df=self.count_df,
             sample_sheet=self.sample_sheet,
             colors=self.colors)
 
 
-class PrepareTaxonDf(Processor):
+class PrepareCountDf(Processor):
 
     df: pd.DataFrame
     sample_sheet: str
 
     def main(
             self,
-            df: pd.DataFrame,
+            count_df: pd.DataFrame,
             sample_sheet: str) -> pd.DataFrame:
 
-        self.df = df.copy()
+        self.df = count_df.copy()
         self.sample_sheet = sample_sheet
 
         self.df = CountNormalization(self.settings).main(
@@ -78,8 +74,8 @@ class PrepareTaxonDf(Processor):
 
     def shorten_taxon_columns(self):
 
-        is_silva_format = self.df.columns.str.contains(';')
-        if not is_silva_format.any():
+        is_silva_format = self.df.columns.str.contains(';').any()
+        if not is_silva_format:
             return  # no need to shorten because the format is not SILVA
 
         def shorten(s: str) -> str:
@@ -141,17 +137,17 @@ class AddSuffixToDuplicatedColumns(Processor):
 
 class MannwhitneyuTestsAndBoxplots(Processor):
 
-    taxon_df: pd.DataFrame
+    count_df: pd.DataFrame
     sample_sheet: str
     colors: list
 
     def main(
             self,
-            taxon_df: pd.DataFrame,
+            count_df: pd.DataFrame,
             sample_sheet: str,
             colors: list):
 
-        self.taxon_df = taxon_df
+        self.count_df = count_df
         self.sample_sheet = sample_sheet
         self.colors = colors
 
@@ -166,21 +162,21 @@ class MannwhitneyuTestsAndBoxplots(Processor):
 
         stats_data = []
 
-        for taxon in self.taxon_df.columns:
+        for taxon in self.count_df.columns:
 
             if taxon == GROUP_COLUMN:
                 continue
 
-            is_group_1 = self.taxon_df[GROUP_COLUMN] == group_1
-            is_group_2 = self.taxon_df[GROUP_COLUMN] == group_2
+            is_group_1 = self.count_df[GROUP_COLUMN] == group_1
+            is_group_2 = self.count_df[GROUP_COLUMN] == group_2
 
             statistic, pvalue = mannwhitneyu(
-                x=self.taxon_df.loc[is_group_1, taxon],
-                y=self.taxon_df.loc[is_group_2, taxon]
+                x=self.count_df.loc[is_group_1, taxon],
+                y=self.count_df.loc[is_group_2, taxon]
             )
 
             Boxplot(self.settings).main(
-                data=self.taxon_df[is_group_1 | is_group_2],
+                data=self.count_df[is_group_1 | is_group_2],
                 x=GROUP_COLUMN,
                 y=taxon,
                 colors=self.colors,
@@ -189,8 +185,8 @@ class MannwhitneyuTestsAndBoxplots(Processor):
 
             stats_data.append({
                 'Taxon': taxon,
-                'Mean 1 (%)': self.taxon_df.loc[is_group_1, taxon].mean(),
-                'Mean 2 (%)': self.taxon_df.loc[is_group_2, taxon].mean(),
+                'Mean 1 (%)': self.count_df.loc[is_group_1, taxon].mean(),
+                'Mean 2 (%)': self.count_df.loc[is_group_2, taxon].mean(),
                 'Statistics': statistic,
                 'P value': pvalue,
             })
