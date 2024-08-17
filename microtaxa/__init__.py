@@ -22,7 +22,7 @@ class EntryPoint:
             debug: bool):
 
         settings = Settings(
-            workdir=get_temp_path(prefix='./qiime2_pipeline_workdir_'),
+            workdir=get_temp_path(prefix='./microtaxa_workdir_'),
             outdir=outdir,
             threads=threads,
             debug=debug,
