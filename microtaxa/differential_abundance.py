@@ -74,11 +74,7 @@ class PrepareCountDf(Processor):
 
     def shorten_taxon_columns(self):
 
-        is_silva_format = self.df.columns.str.contains(';').any()
-        if not is_silva_format:
-            return  # no need to shorten because the format is not SILVA
-
-        def shorten(s: str) -> str:
+        def shorten_silva(s: str) -> str:
             """
             SILVA taxonomy format:
 
@@ -92,7 +88,12 @@ class PrepareCountDf(Processor):
             suffix = s.split(';')[-1]
             return f'{prefix} {suffix}'
 
-        self.df.columns = pd.Series(self.df.columns).apply(shorten)
+        rename = {}
+        for column in self.df.columns:
+            if ';' in column:
+                rename[column] = shorten_silva(column)
+
+        self.df.rename(columns=rename, inplace=True)
 
 
 class AddSuffixToDuplicatedColumns(Processor):
