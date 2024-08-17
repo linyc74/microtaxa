@@ -167,7 +167,7 @@ class EntryPoint:
     def run(self):
         args = self.parser.parse_args()
         print(f'Start running MicroTaxa {__VERSION__}\n', flush=True)
-        microtaxa.EntryPoint().main(
+        microtaxa.entrypoint(
             ref_fa=args.ref_fa,
             sample_sheet=args.sample_sheet,
             fq_dir=args.fq_dir,
