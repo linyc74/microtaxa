@@ -29,6 +29,8 @@ class MicroTaxa(Processor):
     fastas: List[str]
     glsearch_tsvs: List[str]
     count_df: pd.DataFrame
+    percent_id_mean_df: pd.DataFrame
+    percent_id_std_df: pd.DataFrame
 
     def main(
             self,
@@ -59,7 +61,7 @@ class MicroTaxa(Processor):
         self.merge_paired_end_reads()
         self.convert_fastqs_to_fastas()
         self.run_glsearches()
-        self.aggregate_search_results_to_count_df()
+        self.aggregate_search_results()
         self.differential_abundance()
         self.collect_log_files()
 
@@ -115,13 +117,15 @@ class MicroTaxa(Processor):
                 min_percent_identity=self.min_percent_identity)
             self.glsearch_tsvs.append(tsv)
 
-    def aggregate_search_results_to_count_df(self):
-        self.count_df = Aggregate(self.settings).main(
+    def aggregate_search_results(self):
+        self.count_df, self.percent_id_mean_df, self.percent_id_std_df = Aggregate(self.settings).main(
             blast_tabular_tsvs=self.glsearch_tsvs,
             min_percent_identity=self.min_percent_identity,
             ref_fa=self.ref_fa,
             query_fastas=self.fastas)
         self.count_df.to_csv(f'{self.outdir}/count-table.csv')
+        self.percent_id_mean_df.to_csv(f'{self.outdir}/percent-identity-mean.csv')
+        self.percent_id_std_df.to_csv(f'{self.outdir}/percent-identity-std.csv')
 
     def differential_abundance(self):
         colors = GetColors(self.settings).main(

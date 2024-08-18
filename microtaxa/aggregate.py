@@ -1,6 +1,6 @@
 import pandas as pd
 from os.path import basename
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from .utils import FastaParser
 from .template import Processor
 
@@ -13,6 +13,8 @@ class Aggregate(Processor):
     query_fastas: List[str]
 
     count_df: pd.DataFrame
+    percent_id_mean_df: pd.DataFrame
+    percent_id_std_df: pd.DataFrame
     subject_id_to_taxon: Dict[str, str]
     sample_id_to_total_count: Dict[str, int]
 
@@ -21,7 +23,7 @@ class Aggregate(Processor):
             blast_tabular_tsvs: List[str],
             min_percent_identity: float,
             ref_fa: str,
-            query_fastas: List[str]) -> pd.DataFrame:
+            query_fastas: List[str]) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 
         self.blast_tabular_tsvs = blast_tabular_tsvs
         self.min_percent_identity = min_percent_identity
@@ -29,6 +31,8 @@ class Aggregate(Processor):
         self.query_fastas = query_fastas
 
         self.count_df = pd.DataFrame()
+        self.percent_id_mean_df = pd.DataFrame()
+        self.percent_id_std_df = pd.DataFrame()
         for tsv in self.blast_tabular_tsvs:
             self.process_one(tsv=tsv)
         self.count_df.fillna(0, inplace=True)
@@ -38,14 +42,27 @@ class Aggregate(Processor):
         self.calculate_unmapped_read_counts()
         self.label_rows_with_taxon()
 
-        return self.count_df
+        return self.count_df, self.percent_id_mean_df, self.percent_id_std_df
 
     def process_one(self, tsv: str):
         query_df = ReadBlastTsv(self.settings).main(tsv=tsv, min_percent_identity=self.min_percent_identity)
+
+        sample_id = basename(tsv)[:-len('.tsv')]
+
         count_series = query_df.groupby('Subject ID').size()
-        count_series.name = basename(tsv)[:-len('.tsv')]  # sample_id --> column name of count_df
+        count_series.name = sample_id  # column name after join
         count_series.index.name = None
         self.count_df = self.count_df.join(count_series, how='outer')
+
+        percent_id_mean_series = query_df.groupby('Subject ID')['Percent Identity'].mean()
+        percent_id_mean_series.name = sample_id  # column name after join
+        percent_id_mean_series.index.name = None
+        self.percent_id_mean_df = self.percent_id_mean_df.join(percent_id_mean_series, how='outer')
+
+        percent_id_std_series = query_df.groupby('Subject ID')['Percent Identity'].std()
+        percent_id_std_series.name = sample_id  # column name after join
+        percent_id_std_series.index.name = None
+        self.percent_id_std_df = self.percent_id_std_df.join(percent_id_std_series, how='outer')
 
     def set_subject_id_to_taxon(self):
         self.subject_id_to_taxon = {}

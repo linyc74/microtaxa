@@ -104,6 +104,13 @@ OPTIONAL = [
         }
     },
     {
+        'keys': ['--publication-figure'],
+        'properties': {
+            'action': 'store_true',
+            'help': 'plot figures in the form and quality for paper publication',
+        }
+    },
+    {
         'keys': ['-t', '--threads'],
         'properties': {
             'type': int,
@@ -178,6 +185,7 @@ class EntryPoint:
             min_percent_identity=args.min_percent_identity,
             colormap=args.colormap,
             invert_colors=args.invert_colors,
+            publication_figure=args.publication_figure,
             outdir=args.outdir,
             threads=args.threads,
             debug=args.debug)

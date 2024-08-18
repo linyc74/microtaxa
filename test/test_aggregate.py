@@ -13,7 +13,7 @@ class TestMicroTaxa(TestCase):
         self.tear_down()
 
     def test_main(self):
-        actual = Aggregate(self.settings).main(
+        count_df, percent_id_mean_df, percent_id_std_df = Aggregate(self.settings).main(
             blast_tabular_tsvs=[
                 f'{self.indir}/glsearch/EPI-001.tsv',
                 f'{self.indir}/glsearch/EPI-002.tsv',
@@ -33,5 +33,16 @@ class TestMicroTaxa(TestCase):
                 f'{self.indir}/fasta/TP-202.fasta',
             ]
         )
-        expected = pd.read_csv(f'{self.indir}/count-table.csv', index_col=0)
-        self.assertDataFrameEqual(expected, actual)
+
+        self.assertDataFrameEqual(
+            count_df,
+            pd.read_csv(f'{self.indir}/count-table.csv', index_col=0)
+        )
+        self.assertDataFrameEqual(
+            percent_id_mean_df,
+            pd.read_csv(f'{self.indir}/percent-identity-mean.csv', index_col=0)
+        )
+        self.assertDataFrameEqual(
+            percent_id_std_df,
+            pd.read_csv(f'{self.indir}/percent-identity-std.csv', index_col=0)
+        )

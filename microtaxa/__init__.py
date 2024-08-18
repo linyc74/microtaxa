@@ -16,6 +16,7 @@ def entrypoint(
         min_percent_identity: float,
         colormap: str,
         invert_colors: bool,
+        publication_figure: bool,
         outdir: str,
         threads: int,
         debug: bool):
@@ -25,7 +26,8 @@ def entrypoint(
         outdir=outdir,
         threads=threads,
         debug=debug,
-        mock=False)
+        mock=False,
+        for_publication=publication_figure)
 
     for d in [settings.workdir, settings.outdir]:
         os.makedirs(d, exist_ok=True)
