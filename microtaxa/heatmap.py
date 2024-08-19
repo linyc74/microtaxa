@@ -25,22 +25,25 @@ class PlotHeatmaps(Processor):
             sample_sheet=sample_sheet,
             log_pseudocount=True,
             normalize_by_sample_reads=False,
+            colormap='PuBu',
             output_fname='log-pseudocount'
         )
 
         PlotOneHeatmap(self.settings).main(
-            df=percent_id_mean_df.fillna(0),
+            df=percent_id_mean_df,
             sample_sheet=sample_sheet,
             log_pseudocount=False,
             normalize_by_sample_reads=False,
+            colormap='winter',
             output_fname='percent-identity-mean'
         )
 
         PlotOneHeatmap(self.settings).main(
-            df=percent_id_std_df.fillna(0),
+            df=percent_id_std_df,
             sample_sheet=sample_sheet,
             log_pseudocount=False,
             normalize_by_sample_reads=False,
+            colormap='winter',
             output_fname='percent-identity-std'
         )
 
@@ -51,6 +54,7 @@ class PlotOneHeatmap(Processor):
     sample_sheet: str
     log_pseudocount: bool
     normalize_by_sample_reads: bool
+    colormap: str
     output_fname: str
 
     dstdir: str
@@ -61,12 +65,14 @@ class PlotOneHeatmap(Processor):
             sample_sheet: str,
             log_pseudocount: bool,
             normalize_by_sample_reads: bool,
+            colormap: str,
             output_fname: str):
 
         self.df = df
         self.sample_sheet = sample_sheet
         self.log_pseudocount = log_pseudocount
         self.normalize_by_sample_reads = normalize_by_sample_reads
+        self.colormap = colormap
         self.output_fname = output_fname
 
         self.dstdir = f'{self.outdir}/{DSTDIR_NAME}'
@@ -80,13 +86,14 @@ class PlotOneHeatmap(Processor):
         Clustermap(self.settings).main(
             data=self.df,
             sample_sheet=self.sample_sheet,
+            colormap=self.colormap,
             output_prefix=f'{self.dstdir}/{self.output_fname}')
 
 
 class Clustermap(Processor):
 
-    CLUSTER_COLUMNS = True
-    COLORMAP = 'PuBu'
+    CLUSTER_ROWS = False
+    CLUSTER_COLUMNS = False
     Y_LABEL_CHAR_WIDTH = 0.14 / 2.54
     X_LABEL_CHAR_WIDTH = 0.14 / 2.54
     CELL_WIDTH = 0.4 / 2.54
@@ -100,6 +107,7 @@ class Clustermap(Processor):
 
     data: pd.DataFrame
     sample_sheet: str
+    colormap: str
     output_prefix: str
 
     x_label_padding: float
@@ -111,10 +119,12 @@ class Clustermap(Processor):
             self,
             data: pd.DataFrame,
             sample_sheet: str,
+            colormap: str,
             output_prefix: str):
 
         self.data = data.copy()
         self.sample_sheet = sample_sheet
+        self.colormap = colormap
         self.output_prefix = output_prefix
 
         self.tag_group_names_on_sample_columns()
@@ -175,11 +185,13 @@ class Clustermap(Processor):
         dendrogram_ratio = (self.DENDROGRAM_SIZE / w, self.DENDROGRAM_SIZE / h)
         self.grid = sns.clustermap(
             data=self.data,
-            cmap=self.COLORMAP,
+            row_cluster=self.CLUSTER_ROWS,
+            col_cluster=self.CLUSTER_COLUMNS,
+            mask=self.data.isna(),  # mask NaN values
+            cmap=self.colormap,
             figsize=self.figsize,
             xticklabels=True,  # include every x label
             yticklabels=True,  # include every y label
-            col_cluster=self.CLUSTER_COLUMNS,
             dendrogram_ratio=dendrogram_ratio,
             linewidth=0.25)
         self.__set_plotted_data()
