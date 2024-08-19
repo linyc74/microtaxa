@@ -2,7 +2,7 @@ import argparse
 import microtaxa
 
 
-__VERSION__ = '1.0.0-beta'
+__VERSION__ = '1.0.0'
 
 
 PROG = 'python microtaxa'
