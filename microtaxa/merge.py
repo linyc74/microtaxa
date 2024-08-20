@@ -51,6 +51,7 @@ class MergePairedEndReads(Processor):
         self.call(f'mkdir -p {temp_dir}')
 
         output_prefix = f'{temp_dir}/{self.sample_id}'
+        log = f'{self.outdir}/pear.log'
         args = [
             'pear',
             f'--forward-fastq {self.fastq_pair[0]}',
@@ -58,6 +59,8 @@ class MergePairedEndReads(Processor):
             f'--output {output_prefix}',
             f'--min-overlap {self.MIN_OVERLAP}',
             f'--threads {self.threads}',
+            f'1>> "{log}"',
+            f'2>> "{log}"'
         ]
         self.call(self.CMD_LINEBREAK.join(args))
 

@@ -216,8 +216,8 @@ class Glsearch(Processor):
             f'-T {self.threads}',
             self.query_fa,
             self.library_fa,
-            f'1> {self.output_tsv}',
-            f'2>> {self.outdir}/glsearch.log'
+            f'1> "{self.output_tsv}"',
+            f'2>> "{self.outdir}/glsearch.log"'
         ]
         self.call(self.CMD_LINEBREAK.join(args))
 
