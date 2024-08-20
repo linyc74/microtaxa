@@ -4,6 +4,7 @@ from typing import Optional, List, Tuple
 from .template import Processor
 from .grouping import GetColors
 from .aggregate import Aggregate
+from .heatmap import PlotHeatmaps
 from .merge import MergePairedEndReads
 from .differential_abundance import DifferentialAbundance
 from .trimming import TrimGalorePairedEnd, TrimGaloreSingleEnd
@@ -63,6 +64,7 @@ class MicroTaxa(Processor):
         self.run_glsearches()
         self.aggregate_search_results()
         self.differential_abundance()
+        self.plot_heatmaps()
         self.collect_log_files()
 
     def read_sample_sheet(self):
@@ -136,6 +138,13 @@ class MicroTaxa(Processor):
             count_df=self.count_df,
             sample_sheet=self.sample_sheet,
             colors=colors)
+
+    def plot_heatmaps(self):
+        PlotHeatmaps(self.settings).main(
+            count_df=self.count_df,
+            percent_id_mean_df=self.percent_id_mean_df,
+            percent_id_std_df=self.percent_id_std_df,
+            sample_sheet=self.sample_sheet)
 
     def collect_log_files(self):
         self.call(f'mkdir -p {self.outdir}/log')

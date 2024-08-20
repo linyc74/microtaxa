@@ -65,8 +65,8 @@ OPTIONAL = [
         'properties': {
             'type': float,
             'required': False,
-            'default': 0.97,
-            'help': 'minimum percent identity (range 0, 1) for sequence alignment (default: %(default)s)',
+            'default': 97.0,
+            'help': 'minimum percent identity (range 0, 100) for sequence alignment (default: %(default)s)',
         }
     },
     {

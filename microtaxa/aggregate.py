@@ -89,6 +89,8 @@ class Aggregate(Processor):
 
     def label_rows_with_taxon(self):
         self.count_df.rename(index=self.subject_id_to_taxon, inplace=True)
+        self.percent_id_mean_df.rename(index=self.subject_id_to_taxon, inplace=True)
+        self.percent_id_std_df.rename(index=self.subject_id_to_taxon, inplace=True)
 
 
 class ReadBlastTsv(Processor):
