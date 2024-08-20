@@ -2,7 +2,7 @@ import argparse
 import microtaxa
 
 
-__VERSION__ = '1.0.1'
+__VERSION__ = '1.0.2-beta'
 
 
 PROG = 'python microtaxa'
@@ -67,6 +67,15 @@ OPTIONAL = [
             'required': False,
             'default': 97.0,
             'help': 'minimum percent identity (range 0, 100) for sequence alignment (default: %(default)s)',
+        }
+    },
+    {
+        'keys': ['-e', '--e-value'],
+        'properties': {
+            'type': float,
+            'required': False,
+            'default': 1e-30,
+            'help': 'maximum E-value for sequence alignment (default: %(default)s)',
         }
     },
     {
@@ -183,6 +192,7 @@ class EntryPoint:
             clip_r1_5_prime=args.clip_r1_5_prime,
             clip_r2_5_prime=args.clip_r2_5_prime,
             min_percent_identity=args.min_percent_identity,
+            e_value=args.e_value,
             colormap=args.colormap,
             invert_colors=args.invert_colors,
             publication_figure=args.publication_figure,

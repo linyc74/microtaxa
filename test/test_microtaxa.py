@@ -18,6 +18,7 @@ class TestMicroTaxa(TestCase):
             fq1_suffix='_R1.fastq.gz',
             fq2_suffix='_R2.fastq.gz',
             min_percent_identity=97.0,
+            e_value=1e-30,
             clip_r1_5_prime=0,
             clip_r2_5_prime=0,
             colormap='viridis',

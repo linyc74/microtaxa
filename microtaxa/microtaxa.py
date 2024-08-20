@@ -18,6 +18,7 @@ class MicroTaxa(Processor):
     fq1_suffix: str
     fq2_suffix: Optional[str]
     min_percent_identity: float
+    e_value: float
     clip_r1_5_prime: int
     clip_r2_5_prime: int
     colormap: str
@@ -41,6 +42,7 @@ class MicroTaxa(Processor):
             fq1_suffix: str,
             fq2_suffix: Optional[str],
             min_percent_identity: float,
+            e_value: float,
             clip_r1_5_prime: int,
             clip_r2_5_prime: int,
             colormap: str,
@@ -52,6 +54,7 @@ class MicroTaxa(Processor):
         self.fq1_suffix = fq1_suffix
         self.fq2_suffix = fq2_suffix
         self.min_percent_identity = min_percent_identity
+        self.e_value = e_value
         self.clip_r1_5_prime = clip_r1_5_prime
         self.clip_r2_5_prime = clip_r2_5_prime
         self.colormap = colormap
@@ -116,7 +119,7 @@ class MicroTaxa(Processor):
             tsv = Glsearch(self.settings).main(
                 query_fa=fa,
                 library_fa=self.ref_fa,
-                min_percent_identity=self.min_percent_identity)
+                e_value=self.e_value)
             self.glsearch_tsvs.append(tsv)
 
     def aggregate_search_results(self):
@@ -194,11 +197,9 @@ class Glsearch(Processor):
 
     DSTDIR_NAME = 'glsearch'
 
-    E_VALUE = 10e-30
-
     query_fa: str
     library_fa: str
-    min_percent_identity: float
+    e_value: float
 
     output_tsv: str
 
@@ -206,11 +207,11 @@ class Glsearch(Processor):
             self,
             query_fa: str,
             library_fa: str,
-            min_percent_identity: float) -> str:
+            e_value: float) -> str:
 
         self.query_fa = query_fa
         self.library_fa = library_fa
-        self.min_percent_identity = min_percent_identity
+        self.e_value = e_value
 
         self.make_dstdir()
 
@@ -221,7 +222,7 @@ class Glsearch(Processor):
             '-3',  # forward strand only
             '-m 8',  # BLAST tabular output format
             '-n',  # DNA/RNA query
-            f'-E {self.E_VALUE}',
+            f'-E {self.e_value}',
             f'-T {self.threads}',
             self.query_fa,
             self.library_fa,
