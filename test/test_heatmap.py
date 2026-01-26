@@ -36,5 +36,6 @@ class TestPlotOneHeatmap(TestCase):
             sample_sheet=f'{self.indir}/sample-sheet.csv',
             log_pseudocount=True,
             normalize_by_sample_reads=False,
+            colormap='PuBu',
             output_fname='log-pseudocount',
         )
